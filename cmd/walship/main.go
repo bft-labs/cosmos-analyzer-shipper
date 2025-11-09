@@ -62,7 +62,7 @@ func main() {
 			}
 			if cfg.StateDir == "" {
 				if home, err := os.UserHomeDir(); err == nil {
-					cfg.StateDir = home + "/.cometbft-analyzer"
+					cfg.StateDir = home + "/.walship"
 				} else {
 					cfg.StateDir = "."
 				}
@@ -75,7 +75,7 @@ func main() {
 	}
 
 	// Flags
-	root.Flags().StringVar(&cfgPath, "config", "", "path to config file (default: $HOME/.memagent/config.toml)")
+	root.Flags().StringVar(&cfgPath, "config", "", "path to config file (default: $HOME/.walship/config.toml)")
 	root.Flags().StringVar(&cfg.Root, "root", "", "application root (contains data/) [fallback for WAL dir]")
 	root.Flags().StringVar(&cfg.NodeID, "node", "default", "node id (directory suffix)")
 	root.Flags().StringVar(&cfg.WALDir, "wal-dir", "", "WAL directory containing .idx/.gz pairs")
@@ -103,7 +103,7 @@ func main() {
 	root.Flags().BoolVar(&cfg.Once, "once", false, "process available frames and exit")
 
 	if err := root.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "memagent: %v\n", err)
+		fmt.Fprintf(os.Stderr, "walship: %v\n", err)
 		os.Exit(1)
 	}
 }

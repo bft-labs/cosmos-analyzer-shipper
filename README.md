@@ -3,14 +3,14 @@ walship (cometbft-analyzer-shipper)
 Overview
 - Ships MemLogger/WAL frames using `.idx` sidecar metadata.
 - Reads compressed frames from `.wal.gz` by byte range and posts them in batches.
-- Persists progress in `$HOME/.cometbft-analyzer/agent-status.json` to avoid duplicates.
+- Persists progress in `$HOME/.cometbft-analyzer-shipper/agent-status.json` to avoid duplicates.
 - Defers sends under high CPU/network; hard interval forces progress.
 
 Build
 - go build ./cmd/walship
 
 Config
-- Default path: `$HOME/.memagent/config.toml` (unchanged config path for now)
+- Default path: `$HOME/.walship/config.toml` (unchanged config path for now)
 - Override path: `--config /path/to/config.toml`
 - Flags override file values if provided.
 
