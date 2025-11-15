@@ -1,4 +1,4 @@
-module github.com/bft-labs/cometbft-analyzer-shipper
+module github.com/bft-labs/cosmos-analyzer-shipper
 
 go 1.22
 
