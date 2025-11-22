@@ -28,18 +28,25 @@ func main() {
 			if cfgFile == "" {
 				cfgFile = agent.DefaultConfigPath()
 			}
+
+			// Build set of changed flags
+			changed := map[string]bool{}
+			cmd.Flags().Visit(func(f *pflag.Flag) { changed[f.Name] = true })
+
 			if cfgFile != "" && agent.FileExists(cfgFile) {
 				fc, err := agent.LoadFileConfig(cfgFile)
 				if err != nil {
 					return fmt.Errorf("load config: %w", err)
 				}
-				// Build set of changed flags
-				changed := map[string]bool{}
-				cmd.Flags().Visit(func(f *pflag.Flag) { changed[f.Name] = true })
 				if err := agent.ApplyFileConfig(&cfg, fc, changed); err != nil {
 					return err
 				}
 			}
+
+			// Apply environment variables (WALSHIP_*)
+			// These override file config but are overridden by flags (checked via changed map)
+			agent.ApplyEnvConfig(&cfg, changed)
+
 			if cfg.WALDir == "" {
 				if cfg.Root != "" && cfg.NodeID != "" {
 					// fallback derived layout
