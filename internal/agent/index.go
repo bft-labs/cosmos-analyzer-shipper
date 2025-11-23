@@ -108,7 +108,7 @@ func latestIndex(dir string) (string, error) {
 func oldestIndex(dir string) (string, error) {
 	ents, err := os.ReadDir(dir)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w\n\nPlease verify:\n  - The --wal-dir flag points to the correct directory\n  - The directory exists\n  - You have permission to read the directory", err)
 	}
 	// Find earliest day
 	earliestDay := "~" // larger than any valid day; we will pick smaller
@@ -153,7 +153,7 @@ func oldestIndex(dir string) (string, error) {
 		}
 	}
 	if oldest == "~" {
-		return "", fmt.Errorf("no index files in %s", dir)
+		return "", fmt.Errorf("no index files found in %q\n\nPlease verify:\n  - The --wal-dir directory contains .idx files", dir)
 	}
 	return filepath.Join(dir, oldest), nil
 }
