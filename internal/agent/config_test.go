@@ -35,6 +35,7 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid minimal config",
 			config: Config{
+				Root:         "/tmp/root",
 				WALDir:       "/tmp/wal",
 				RemoteURL:    "http://localhost:8080",
 				PollInterval: time.Second,
@@ -55,6 +56,7 @@ func TestConfig_Validate(t *testing.T) {
 			name: "derived wal dir from root",
 			config: Config{
 				Root:         "/tmp/root",
+				NodeID:       "default",
 				RemoteURL:    "http://localhost:8080",
 				PollInterval: time.Second,
 				SendInterval: time.Second,
@@ -73,6 +75,7 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "derived remote url",
 			config: Config{
+				Root:         "/tmp/root",
 				WALDir:       "/tmp/wal",
 				RemoteBase:   "http://localhost:8080",
 				Network:      "testnet",
@@ -85,9 +88,44 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "invalid poll interval",
 			config: Config{
+				Root:         "/tmp/root",
 				WALDir:       "/tmp/wal",
 				RemoteURL:    "http://localhost:8080",
 				PollInterval: -1,
+				SendInterval: time.Second,
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing root but has chain-id and node-id",
+			config: Config{
+				ChainID:      "test-chain",
+				NodeID:       "test-node",
+				WALDir:       "/tmp/wal",
+				RemoteURL:    "http://localhost:8080",
+				PollInterval: time.Second,
+				SendInterval: time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing root and chain-id",
+			config: Config{
+				NodeID:       "test-node",
+				WALDir:       "/tmp/wal",
+				RemoteURL:    "http://localhost:8080",
+				PollInterval: time.Second,
+				SendInterval: time.Second,
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing root and node-id",
+			config: Config{
+				ChainID:      "test-chain",
+				WALDir:       "/tmp/wal",
+				RemoteURL:    "http://localhost:8080",
+				PollInterval: time.Second,
 				SendInterval: time.Second,
 			},
 			wantErr: true,
@@ -122,6 +160,7 @@ func TestConfig_Validate_Derivations(t *testing.T) {
 
 	// Test RemoteURL derivation
 	c2 := Config{
+		Root:         "/tmp/root",
 		WALDir:       "/wal",
 		RemoteBase:   "http://api.com/", // trailing slash should be handled
 		Network:      "cosmos",

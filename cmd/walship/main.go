@@ -44,6 +44,11 @@ func main() {
 			// These override file config but are overridden by flags (checked via changed map)
 			agent.ApplyEnvConfig(&cfg, changed)
 
+			// Load node info (ChainID, NodeID) from files if needed
+			if err := agent.LoadNodeInfo(&cfg); err != nil {
+				return err
+			}
+
 			// Validate and set derived defaults
 			if err := cfg.Validate(); err != nil {
 				return err
@@ -66,6 +71,7 @@ func main() {
 	// Flags
 	root.Flags().StringVar(&cfgPath, "config", "", "path to config file (default: $HOME/.walship/config.toml)")
 	root.Flags().StringVar(&cfg.Root, "root", cfg.Root, "application root (contains data/) [fallback for WAL dir]")
+	root.Flags().StringVar(&cfg.ChainID, "chain-id", cfg.ChainID, "chain id (override genesis.json)")
 	root.Flags().StringVar(&cfg.NodeID, "node", cfg.NodeID, "node id (directory suffix)")
 	root.Flags().StringVar(&cfg.WALDir, "wal-dir", cfg.WALDir, "WAL directory containing .idx/.gz pairs")
 

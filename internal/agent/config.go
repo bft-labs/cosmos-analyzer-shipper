@@ -28,6 +28,8 @@ type Config struct {
 	NodeID string
 	WALDir string
 
+	ChainID string
+
 	RemoteURL  string
 	RemoteBase string
 	Network    string
@@ -76,12 +78,19 @@ func defaultStateDir() string {
 
 // Validate checks the configuration for errors and sets derived defaults.
 func (c *Config) Validate() error {
+	if c.Root == "" {
+		if c.ChainID == "" {
+			return fmt.Errorf("root directory is required when chain-id is missing")
+		}
+		if c.NodeID == "" || c.NodeID == "default" {
+			return fmt.Errorf("root directory is required when node-id is missing or default")
+		}
+	}
+
 	if c.WALDir == "" {
-		if c.Root != "" && c.NodeID != "" {
+		if c.NodeID != "" {
 			// fallback derived layout
 			c.WALDir = fmt.Sprintf("%s/data/log.wal/node-%s", c.Root, c.NodeID)
-		} else if c.Root != "" {
-			c.WALDir = fmt.Sprintf("%s/data/log.wal", c.Root)
 		} else {
 			return fmt.Errorf("wal-dir is required (or root)")
 		}
