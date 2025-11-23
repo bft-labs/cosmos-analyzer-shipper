@@ -12,12 +12,12 @@ func TestApplyFileConfig(t *testing.T) {
 	falseVal := false
 
 	tests := []struct {
-		name        string
-		fileConfig  fileConfig
-		changed     map[string]bool
-		initial     Config
-		expected    Config
-		expectError bool
+		name       string
+		fileConfig fileConfig
+		changed    map[string]bool
+		initial    Config
+		expected   Config
+		wantErr    bool
 	}{
 		{
 			name: "applies all valid config values",
@@ -39,7 +39,7 @@ func TestApplyFileConfig(t *testing.T) {
 				IfaceSpeedMbps: 1000,
 				Verify:         true,
 			},
-			expectError: false,
+			wantErr: false,
 		},
 		{
 			name: "respects changed flags",
@@ -56,7 +56,7 @@ func TestApplyFileConfig(t *testing.T) {
 				Root:   "/flag/root", // unchanged because flag was set
 				NodeID: "config-node",
 			},
-			expectError: false,
+			wantErr: false,
 		},
 		{
 			name: "handles all field types correctly",
@@ -108,7 +108,7 @@ func TestApplyFileConfig(t *testing.T) {
 				Meta:           false,
 				Once:           true,
 			},
-			expectError: false,
+			wantErr: false,
 		},
 	}
 
@@ -117,16 +117,16 @@ func TestApplyFileConfig(t *testing.T) {
 			cfg := tt.initial
 			err := applyFileConfig(&cfg, tt.fileConfig, tt.changed)
 
-			if tt.expectError && err == nil {
+			if tt.wantErr && err == nil {
 				t.Error("applyFileConfig() expected error but got nil")
 				return
 			}
-			if !tt.expectError && err != nil {
+			if !tt.wantErr && err != nil {
 				t.Errorf("applyFileConfig() unexpected error: %v", err)
 				return
 			}
 
-			if !tt.expectError {
+			if !tt.wantErr {
 				// Check string fields
 				if cfg.Root != tt.expected.Root {
 					t.Errorf("Root = %v, want %v", cfg.Root, tt.expected.Root)

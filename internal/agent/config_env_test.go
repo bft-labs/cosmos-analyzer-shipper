@@ -8,12 +8,12 @@ import (
 
 func TestApplyEnvConfig(t *testing.T) {
 	tests := []struct {
-		name        string
-		envVars     map[string]string
-		changed     map[string]bool
-		initial     Config
-		expected    Config
-		expectError bool
+		name     string
+		envVars  map[string]string
+		changed  map[string]bool
+		initial  Config
+		expected Config
+		wantErr  bool
 	}{
 		{
 			name: "applies all valid env vars",
@@ -35,7 +35,7 @@ func TestApplyEnvConfig(t *testing.T) {
 				IfaceSpeedMbps: 100,
 				Verify:         true,
 			},
-			expectError: false,
+			wantErr: false,
 		},
 		{
 			name: "respects changed flags",
@@ -52,37 +52,37 @@ func TestApplyEnvConfig(t *testing.T) {
 				Root:   "/flag/root", // unchanged because flag was set
 				NodeID: "env-node",
 			},
-			expectError: false,
+			wantErr: false,
 		},
 		{
 			name: "returns error for invalid duration",
 			envVars: map[string]string{
 				"WALSHIP_POLL_INTERVAL": "not-a-duration",
 			},
-			changed:     map[string]bool{},
-			initial:     Config{},
-			expected:    Config{},
-			expectError: true,
+			changed:  map[string]bool{},
+			initial:  Config{},
+			expected: Config{},
+			wantErr:  true,
 		},
 		{
 			name: "returns error for invalid int",
 			envVars: map[string]string{
 				"WALSHIP_IFACE_SPEED_MBPS": "not-a-number",
 			},
-			changed:     map[string]bool{},
-			initial:     Config{},
-			expected:    Config{},
-			expectError: true,
+			changed:  map[string]bool{},
+			initial:  Config{},
+			expected: Config{},
+			wantErr:  true,
 		},
 		{
 			name: "returns error for invalid float",
 			envVars: map[string]string{
 				"WALSHIP_CPU_THRESHOLD": "not-a-float",
 			},
-			changed:     map[string]bool{},
-			initial:     Config{},
-			expected:    Config{},
-			expectError: true,
+			changed:  map[string]bool{},
+			initial:  Config{},
+			expected: Config{},
+			wantErr:  true,
 		},
 		{
 			name: "handles bool '1' as true",
@@ -94,7 +94,7 @@ func TestApplyEnvConfig(t *testing.T) {
 			expected: Config{
 				Verify: true,
 			},
-			expectError: false,
+			wantErr: false,
 		},
 		{
 			name: "handles bool 'false' as false",
@@ -106,7 +106,7 @@ func TestApplyEnvConfig(t *testing.T) {
 			expected: Config{
 				Verify: false,
 			},
-			expectError: false,
+			wantErr: false,
 		},
 		{
 			name: "handles all field types correctly",
@@ -158,7 +158,7 @@ func TestApplyEnvConfig(t *testing.T) {
 				Meta:           false,
 				Once:           true,
 			},
-			expectError: false,
+			wantErr: false,
 		},
 	}
 
@@ -178,16 +178,16 @@ func TestApplyEnvConfig(t *testing.T) {
 			cfg := tt.initial
 			err := ApplyEnvConfig(&cfg, tt.changed)
 
-			if tt.expectError && err == nil {
+			if tt.wantErr && err == nil {
 				t.Error("ApplyEnvConfig() expected error but got nil")
 				return
 			}
-			if !tt.expectError && err != nil {
+			if !tt.wantErr && err != nil {
 				t.Errorf("ApplyEnvConfig() unexpected error: %v", err)
 				return
 			}
 
-			if !tt.expectError {
+			if !tt.wantErr {
 				// Check string fields
 				if cfg.Root != tt.expected.Root {
 					t.Errorf("Root = %v, want %v", cfg.Root, tt.expected.Root)
