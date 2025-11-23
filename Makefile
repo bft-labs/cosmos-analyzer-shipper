@@ -1,8 +1,26 @@
-.PHONY: build docker-build docker-run release
+.PHONY: build docker-build docker-run release test test-coverage clean help
 
-# Build binary locally
-build:
-	go build ./cmd/walship
+help: ## Show this help message
+	@echo 'Usage: make [target]'
+	@echo ''
+	@echo 'Available targets:'
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+build: ## Build the walship binary
+	go build -o walship ./cmd/walship
+
+test: ## Run all tests
+	go test -v ./...
+
+test-coverage: ## Run tests with coverage report
+	go test -v -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+clean: ## Clean build artifacts and test outputs
+	rm -f walship
+	rm -f coverage.out coverage.html
+	rm -rf dist/
 
 # Build Docker image locally
 docker-build:
