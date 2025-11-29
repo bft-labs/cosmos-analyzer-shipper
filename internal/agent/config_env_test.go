@@ -19,7 +19,7 @@ func TestApplyEnvConfig(t *testing.T) {
 			name: "applies all valid env vars",
 			envVars: map[string]string{
 				"WALSHIP_NODE_HOME":        "/env/root",
-				"WALSHIP_NODE":             "env-node",
+				"WALSHIP_NODE_ID":          "env-node",
 				"WALSHIP_POLL_INTERVAL":    "10m",
 				"WALSHIP_CPU_THRESHOLD":    "0.9",
 				"WALSHIP_IFACE_SPEED_MBPS": "100",
@@ -41,7 +41,7 @@ func TestApplyEnvConfig(t *testing.T) {
 			name: "respects changed flags",
 			envVars: map[string]string{
 				"WALSHIP_NODE_HOME": "/env/root",
-				"WALSHIP_NODE":      "env-node",
+				"WALSHIP_NODE_ID":   "env-node",
 			},
 			changed: map[string]bool{"node-home": true},
 			initial: Config{
@@ -110,10 +110,10 @@ func TestApplyEnvConfig(t *testing.T) {
 			name: "handles all field types correctly",
 			envVars: map[string]string{
 				"WALSHIP_NODE_HOME":        "/root",
-				"WALSHIP_NODE":             "node",
+				"WALSHIP_NODE_ID":          "node",
 				"WALSHIP_WAL_DIR":          "/wal",
 				"WALSHIP_SERVICE_URL":      "http://example.com",
-				"WALSHIP_AUTH_KEY":          "secret",
+				"WALSHIP_AUTH_KEY":         "secret",
 				"WALSHIP_POLL_INTERVAL":    "1m",
 				"WALSHIP_SEND_INTERVAL":    "2m",
 				"WALSHIP_HARD_INTERVAL":    "3m",
@@ -240,11 +240,11 @@ func TestConfigPrecedence(t *testing.T) {
 
 	// Setup env vars
 	os.Setenv("WALSHIP_NODE_HOME", "/env/root")
-	os.Setenv("WALSHIP_NODE", "env-node")
+	os.Setenv("WALSHIP_NODE_ID", "env-node")
 	os.Setenv("WALSHIP_WAL_DIR", "/env/wal")
 	defer func() {
 		os.Unsetenv("WALSHIP_NODE_HOME")
-		os.Unsetenv("WALSHIP_NODE")
+		os.Unsetenv("WALSHIP_NODE_ID")
 		os.Unsetenv("WALSHIP_WAL_DIR")
 	}()
 

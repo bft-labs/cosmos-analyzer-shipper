@@ -10,7 +10,7 @@ import (
 // fileConfig mirrors Config but uses strings for durations to make TOML friendly.
 type fileConfig struct {
 	NodeHome       string  `toml:"node_home"`
-	NodeID         string  `toml:"node"`
+	NodeID         string  `toml:"node_id"`
 	WALDir         string  `toml:"wal_dir"`
 	ServiceURL     string  `toml:"service_url"`
 	AuthKey         string  `toml:"api_key"`
@@ -57,7 +57,7 @@ func applyFileConfig(cfg *Config, fc fileConfig, changed map[string]bool) error 
 	s := newConfigSetter(changed)
 
 	s.setString("node-home", fc.NodeHome, &cfg.NodeHome)
-	s.setString("node", fc.NodeID, &cfg.NodeID)
+	s.setString("node-id", fc.NodeID, &cfg.NodeID)
 	s.setString("wal-dir", fc.WALDir, &cfg.WALDir)
 	s.setString("service-url", fc.ServiceURL, &cfg.ServiceURL)
 	s.setString("auth-key", fc.AuthKey, &cfg.AuthKey)

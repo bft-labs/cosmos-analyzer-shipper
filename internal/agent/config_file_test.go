@@ -172,7 +172,7 @@ func TestLoadFileConfig(t *testing.T) {
 
 	tomlContent := `
 node_home = "/tmp/root"
-node = "test-node"
+node_id = "test-node"
 poll_interval = "5m"
 cpu_threshold = 0.8
 iface_speed_mbps = 1000

@@ -92,7 +92,7 @@ All CLI flags have a `WALSHIP_` prefixed environment variable equivalent:
 |------|---------------------|---------|-------------|
 | `--node-home` | `WALSHIP_NODE_HOME` | (required) | Node home directory (contains `config/`, `data/`) |
 | `--chain-id` | `WALSHIP_CHAIN_ID` | (auto-discovered) | Override chain ID from genesis.json |
-| `--node` | `WALSHIP_NODE` | `"default"` | Override node ID |
+| `--node-id` | `WALSHIP_NODE_ID` | `"default"` | Override node ID |
 | `--wal-dir` | `WALSHIP_WAL_DIR` | (auto-discovered) | WAL directory path |
 | `--service-url` | `WALSHIP_SERVICE_URL` | (required) | Service URL (e.g., `https://api.apphash.io/v1/ingest`) |
 | `--auth-key` | `WALSHIP_AUTH_KEY` | `""` | Authorization key |
