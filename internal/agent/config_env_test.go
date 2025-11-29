@@ -139,8 +139,6 @@ func TestApplyEnvConfig(t *testing.T) {
 				WALDir:         "/wal",
 				RemoteURL:      "http://example.com",
 				RemoteBase:     "/base",
-				Network:        "tcp",
-				RemoteNode:     "remote",
 				AuthKey:        "secret",
 				PollInterval:   1 * time.Minute,
 				SendInterval:   2 * time.Minute,

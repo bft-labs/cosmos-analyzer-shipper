@@ -2,9 +2,7 @@ package agent
 
 import (
 	"fmt"
-	"net/url"
 	"os"
-	pathpkg "path"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -32,8 +30,6 @@ type Config struct {
 
 	RemoteURL  string
 	RemoteBase string
-	Network    string
-	RemoteNode string
 	AuthKey    string
 
 	PollInterval time.Duration
@@ -97,19 +93,15 @@ func (c *Config) Validate() error {
 	}
 
 	if c.RemoteURL == "" {
-		if c.RemoteBase != "" && c.Network != "" {
-			node := c.RemoteNode
-			if node == "" {
-				node = c.NodeID
-			}
+		if c.RemoteBase != "" {
 			base := c.RemoteBase
 			// ensure no trailing slash
 			if len(base) > 0 && base[len(base)-1] == '/' {
 				base = base[:len(base)-1]
 			}
-			c.RemoteURL = base + pathpkg.Join("", "/v1/ingest/", url.PathEscape(c.Network), "/", url.PathEscape(node), "/wal-frames")
+			c.RemoteURL = base + "/v1/ingest/wal-frames"
 		} else {
-			return fmt.Errorf("remote-url is required (or remote-base + network)")
+			return fmt.Errorf("remote-url is required (or remote-base)")
 		}
 	}
 

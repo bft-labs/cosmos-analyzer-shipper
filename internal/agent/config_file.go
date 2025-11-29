@@ -14,8 +14,6 @@ type fileConfig struct {
 	WALDir         string  `toml:"wal_dir"`
 	RemoteURL      string  `toml:"remote_url"`
 	RemoteBase     string  `toml:"remote_base"`
-	Network        string  `toml:"network"`
-	RemoteNode     string  `toml:"remote_node"`
 	AuthKey        string  `toml:"auth_key"`
 	PollInterval   string  `toml:"poll_interval"`
 	SendInterval   string  `toml:"send_interval"`
@@ -64,8 +62,6 @@ func applyFileConfig(cfg *Config, fc fileConfig, changed map[string]bool) error 
 	s.setString("wal-dir", fc.WALDir, &cfg.WALDir)
 	s.setString("remote-url", fc.RemoteURL, &cfg.RemoteURL)
 	s.setString("remote-base", fc.RemoteBase, &cfg.RemoteBase)
-	s.setString("network", fc.Network, &cfg.Network)
-	s.setString("remote-node", fc.RemoteNode, &cfg.RemoteNode)
 	s.setString("auth-key", fc.AuthKey, &cfg.AuthKey)
 	s.setString("iface", fc.Iface, &cfg.Iface)
 	s.setString("state-dir", fc.StateDir, &cfg.StateDir)

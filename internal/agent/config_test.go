@@ -78,7 +78,6 @@ func TestConfig_Validate(t *testing.T) {
 				NodeHome:     "/tmp/root",
 				WALDir:       "/tmp/wal",
 				RemoteBase:   "http://localhost:8080",
-				Network:      "testnet",
 				NodeID:       "node1",
 				PollInterval: time.Second,
 				SendInterval: time.Second,
@@ -163,7 +162,6 @@ func TestConfig_Validate_Derivations(t *testing.T) {
 		NodeHome:     "/tmp/root",
 		WALDir:       "/wal",
 		RemoteBase:   "http://api.com/", // trailing slash should be handled
-		Network:      "cosmos",
 		NodeID:       "validator-1",
 		PollInterval: time.Second,
 		SendInterval: time.Second,
@@ -171,7 +169,7 @@ func TestConfig_Validate_Derivations(t *testing.T) {
 	if err := c2.Validate(); err != nil {
 		t.Fatalf("Validate failed: %v", err)
 	}
-	expectedURL := "http://api.com/v1/ingest/cosmos/validator-1/wal-frames"
+	expectedURL := "http://api.com/v1/ingest/wal-frames"
 	if c2.RemoteURL != expectedURL {
 		t.Errorf("RemoteURL = %v, want %v", c2.RemoteURL, expectedURL)
 	}

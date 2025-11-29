@@ -75,10 +75,8 @@ func main() {
 	root.Flags().StringVar(&cfg.NodeID, "node", cfg.NodeID, "node id (directory suffix)")
 	root.Flags().StringVar(&cfg.WALDir, "wal-dir", cfg.WALDir, "WAL directory containing .idx/.gz pairs")
 
-	root.Flags().StringVar(&cfg.RemoteURL, "remote-url", cfg.RemoteURL, "remote HTTP(S) endpoint to POST frames (overrides base/network/node)")
+	root.Flags().StringVar(&cfg.RemoteURL, "remote-url", cfg.RemoteURL, "remote HTTP(S) endpoint to POST frames")
 	root.Flags().StringVar(&cfg.RemoteBase, "remote-base", cfg.RemoteBase, "remote base URL (e.g., http://host:8080)")
-	root.Flags().StringVar(&cfg.Network, "network", cfg.Network, "network identifier for ingest route")
-	root.Flags().StringVar(&cfg.RemoteNode, "remote-node", cfg.RemoteNode, "node identifier for ingest route (defaults to --node)")
 	root.Flags().StringVar(&cfg.AuthKey, "auth-key", cfg.AuthKey, "authorization key (or MEMAGENT_AUTH_KEY)")
 
 	root.Flags().DurationVar(&cfg.PollInterval, "poll", cfg.PollInterval, "poll interval when idle")
