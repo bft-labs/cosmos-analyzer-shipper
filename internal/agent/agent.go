@@ -28,6 +28,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("state dir: %w", err)
 	}
 
+	// Start config watcher for dynamic configuration updates
+	cfgPtr := &cfg
+	watcher := NewConfigWatcher(cfgPtr)
+	go watcher.Run(ctx)
+
 	// Load prior state; if none, start from the oldest index (first logs)
 	st, _ := loadState(cfg.StateDir)
 	if st.IdxPath == "" {
