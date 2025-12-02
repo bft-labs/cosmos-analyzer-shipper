@@ -47,8 +47,8 @@ seeds = ""
 	var receivedHeaders http.Header
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/config" {
-			t.Errorf("Path = %v, want /config", r.URL.Path)
+		if r.URL.Path != "/v1/ingest/config" {
+			t.Errorf("Path = %v, want /v1/ingest/config", r.URL.Path)
 		}
 		if r.Method != http.MethodPost {
 			t.Errorf("Method = %v, want POST", r.Method)
@@ -258,6 +258,47 @@ func TestConfigWatcher_FsnotifyDetectsChanges(t *testing.T) {
 
 	if afterChangeCount <= initialCount {
 		t.Errorf("sendCount after change = %d, want > %d", afterChangeCount, initialCount)
+	}
+}
+
+func TestConfigWatcher_URLConstruction(t *testing.T) {
+	// Test that base URL is correctly constructed to full path for config endpoint
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, "config")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+
+	// Create app.toml
+	if err := os.WriteFile(filepath.Join(configDir, "app.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create app.toml: %v", err)
+	}
+
+	// Create config.toml
+	if err := os.WriteFile(filepath.Join(configDir, "config.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create config.toml: %v", err)
+	}
+
+	var requestPath string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	cfg := &Config{
+		NodeHome:   tmpDir,
+		ServiceURL: ts.URL, // Base URL only, no /v1/ingest/config
+		ChainID:    "test-chain",
+		NodeID:     "test-node",
+	}
+
+	watcher := NewConfigWatcher(cfg)
+	watcher.sendConfig(context.Background())
+
+	expectedPath := "/v1/ingest/config"
+	if requestPath != expectedPath {
+		t.Errorf("Request path = %v, want %v", requestPath, expectedPath)
 	}
 }
 

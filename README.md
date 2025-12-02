@@ -21,7 +21,7 @@ walship auto-discovers:
 ```bash
 ./walship \
   --node-home /path/to/.evmosd \
-  --service-url https://api.example.com/v1/ingest \
+  --service-url https://api.example.com \
   --auth-key=$MY_AUTH_KEY
 ```
 
@@ -52,7 +52,7 @@ docker run -d \
   --name walship \
   -v /path/to/.evmosd:/node \
   -e WALSHIP_NODE_HOME=/node \
-  -e WALSHIP_SERVICE_URL=https://api.example.com/v1/ingest \
+  -e WALSHIP_SERVICE_URL=https://api.example.com \
   -e WALSHIP_AUTH_KEY=$MY_AUTH_KEY \
   --restart unless-stopped \
   ghcr.io/bft-labs/cosmos-analyzer-shipper:latest
@@ -94,7 +94,7 @@ All CLI flags have a `WALSHIP_` prefixed environment variable equivalent:
 | `--chain-id` | `WALSHIP_CHAIN_ID` | (auto-discovered) | Override chain ID from genesis.json |
 | `--node-id` | `WALSHIP_NODE_ID` | `"default"` | Override node ID |
 | `--wal-dir` | `WALSHIP_WAL_DIR` | (auto-discovered) | WAL directory path |
-| `--service-url` | `WALSHIP_SERVICE_URL` | (required) | Service URL (e.g., `https://api.apphash.io/v1/ingest`) |
+| `--service-url` | `WALSHIP_SERVICE_URL` | (required) | Base service URL (e.g., `https://api.apphash.io`) |
 | `--auth-key` | `WALSHIP_AUTH_KEY` | `""` | Authorization key |
 | `--poll` | `WALSHIP_POLL_INTERVAL` | `"500ms"` | Poll interval when idle |
 | `--send-interval` | `WALSHIP_SEND_INTERVAL` | `"5s"` | Soft send interval |
@@ -113,7 +113,7 @@ Create `$HOME/.walship/config.toml`:
 
 ```toml
 node_home = "/path/to/node"
-service_url = "https://api.example.com/v1/ingest"
+service_url = "https://api.example.com"
 auth_key = "your-secret-key"
 
 poll_interval = "500ms"
@@ -133,13 +133,13 @@ Automatically discovers chain-id and node-id from node files:
 ```bash
 ./walship \
   --node-home /home/validator/.osmosisd \
-  --service-url https://api.example.com/v1/ingest \
+  --service-url https://api.example.com \
   --auth-key your-secret-key
 ```
 
-Internally sends to:
+Internally constructs and sends to:
 - WAL frames: `POST https://api.example.com/v1/ingest/wal-frames`
-- Config (future): `POST https://api.example.com/v1/ingest/config`
+- Config updates: `POST https://api.example.com/v1/ingest/config`
 
 Node metadata (chain-id, node-id) is sent via headers:
 - `X-Cosmos-Analyzer-Chain-Id`
@@ -153,7 +153,7 @@ docker run -d \
   --name walship \
   -v /path/to/.evmd:/node \
   -e WALSHIP_NODE_HOME=/node \
-  -e WALSHIP_SERVICE_URL=https://api.example.com/v1/ingest \
+  -e WALSHIP_SERVICE_URL=https://api.example.com \
   -e WALSHIP_AUTH_KEY=$MY_AUTH_KEY \
   --restart unless-stopped \
   ghcr.io/bft-labs/cosmos-analyzer-shipper:latest
@@ -181,7 +181,7 @@ docker build -t walship .
 make build
 
 # Run with debug output
-./walship --node-home /path/to/node --service-url http://localhost:8080/v1/ingest --meta
+./walship --node-home /path/to/node --service-url http://localhost:8080 --meta
 ```
 
 ## Troubleshooting

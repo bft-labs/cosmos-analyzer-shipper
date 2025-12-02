@@ -75,7 +75,7 @@ func main() {
 	root.Flags().StringVar(&cfg.NodeID, "node-id", cfg.NodeID, "node id (directory suffix)")
 	root.Flags().StringVar(&cfg.WALDir, "wal-dir", cfg.WALDir, "WAL directory containing .idx/.gz pairs")
 
-	root.Flags().StringVar(&cfg.ServiceURL, "service-url", cfg.ServiceURL, "webhook URL (e.g., https://api.apphash.io/v1/ingest)")
+	root.Flags().StringVar(&cfg.ServiceURL, "service-url", cfg.ServiceURL, "base service URL (e.g., https://api.apphash.io)")
 	root.Flags().StringVar(&cfg.AuthKey, "auth-key", cfg.AuthKey, "API key for authentication")
 
 	root.Flags().DurationVar(&cfg.PollInterval, "poll", cfg.PollInterval, "poll interval when idle")

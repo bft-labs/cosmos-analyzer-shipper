@@ -106,7 +106,7 @@ func (w *ConfigWatcher) debounceSend(ctx context.Context, delay time.Duration) {
 func (w *ConfigWatcher) configDir() string      { return filepath.Join(w.cfg.NodeHome, "config") }
 func (w *ConfigWatcher) appConfigPath() string   { return filepath.Join(w.configDir(), "app.toml") }
 func (w *ConfigWatcher) cometConfigPath() string { return filepath.Join(w.configDir(), "config.toml") }
-func (w *ConfigWatcher) configURL() string       { return w.cfg.ServiceURL + "/config" }
+func (w *ConfigWatcher) configURL() string       { return w.cfg.ServiceURL + configEndpoint }
 
 func (w *ConfigWatcher) sendConfig(ctx context.Context) {
 	var buf bytes.Buffer

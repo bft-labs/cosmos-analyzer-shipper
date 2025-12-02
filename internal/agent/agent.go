@@ -14,6 +14,11 @@ import (
 	"time"
 )
 
+const (
+	walFramesEndpoint = "/v1/ingest/wal-frames"
+	configEndpoint    = "/v1/ingest/config"
+)
+
 type batchFrame struct {
 	Meta       FrameMeta
 	Compressed []byte
@@ -187,7 +192,7 @@ func trySend(cfg Config, httpClient *http.Client, batch *[]batchFrame, batchByte
 		manifest = append(manifest, fr.Meta)
 		advance += int64(fr.IdxLineLen)
 	}
-	url := cfg.ServiceURL + "/wal-frames"
+	url := cfg.ServiceURL + walFramesEndpoint
 	req, err := http.NewRequest(http.MethodPost, url, &buf)
 	if err != nil {
 		return
