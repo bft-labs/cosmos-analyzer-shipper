@@ -57,11 +57,11 @@ func (w *ConfigWatcher) Run(ctx context.Context) {
 
 	if err := watcher.Add(configDir); err != nil {
 		fmt.Fprintf(os.Stderr, "config watcher: failed to watch %s: %v\n", configDir, err)
-		w.sendConfig(ctx)
+		w.sendConfigWithRetry(ctx)
 		return
 	}
 
-	w.sendConfig(ctx)
+	w.sendConfigWithRetry(ctx)
 
 	for {
 		select {
@@ -99,7 +99,7 @@ func (w *ConfigWatcher) debounceSend(ctx context.Context, delay time.Duration) {
 	}
 
 	w.debounce = time.AfterFunc(delay, func() {
-		w.sendConfig(ctx)
+		w.sendConfigWithRetry(ctx)
 	})
 }
 
@@ -108,9 +108,12 @@ func (w *ConfigWatcher) appConfigPath() string   { return filepath.Join(w.config
 func (w *ConfigWatcher) cometConfigPath() string { return filepath.Join(w.configDir(), "config.toml") }
 func (w *ConfigWatcher) configURL() string       { return w.cfg.ServiceURL + configEndpoint }
 
-func (w *ConfigWatcher) sendConfig(ctx context.Context) {
+// buildMultipartPayload builds multipart form-data with config files and captured_at timestamp.
+func (w *ConfigWatcher) buildMultipartPayload() (*bytes.Buffer, string) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
+
+	writer.WriteField("captured_at", time.Now().UTC().Format(time.RFC3339Nano))
 
 	appContent, appErr := w.readFile(w.appConfigPath())
 	if appErr != nil {
@@ -126,14 +129,56 @@ func (w *ConfigWatcher) sendConfig(ctx context.Context) {
 		part.Write([]byte(cometContent))
 	}
 
+	contentType := writer.FormDataContentType()
 	writer.Close()
 
-	if err := w.send(ctx, &buf, writer.FormDataContentType()); err != nil {
+	return &buf, contentType
+}
+
+func (w *ConfigWatcher) sendConfig(ctx context.Context) {
+	buf, contentType := w.buildMultipartPayload()
+
+	if err := w.send(ctx, buf, contentType); err != nil {
 		fmt.Fprintf(os.Stderr, "config watcher: send error: %v\n", err)
 		return
 	}
 
 	fmt.Fprintf(os.Stderr, "config watcher: sent configuration update\n")
+}
+
+// sendConfigWithRetry retries until success or context cancellation.
+// Snapshot is captured once at start to preserve history.
+func (w *ConfigWatcher) sendConfigWithRetry(ctx context.Context) {
+	const retryInterval = 5 * time.Second
+	retryCount := 0
+
+	snapshot, contentType := w.buildMultipartPayload()
+	snapshotBytes := snapshot.Bytes()
+
+	for {
+		reader := bytes.NewReader(snapshotBytes)
+
+		if err := w.send(ctx, reader, contentType); err == nil {
+			if retryCount > 0 {
+				fmt.Fprintf(os.Stderr, "config watcher: sent configuration update (succeeded after %d retries)\n", retryCount)
+			} else {
+				fmt.Fprintf(os.Stderr, "config watcher: sent configuration update\n")
+			}
+			return
+		}
+
+		// Failure - log and retry
+		retryCount++
+		fmt.Fprintf(os.Stderr, "config watcher: send failed (retry %d), retrying in %v\n", retryCount, retryInterval)
+
+		select {
+		case <-ctx.Done():
+			fmt.Fprintf(os.Stderr, "config watcher: stopping retry due to context cancellation\n")
+			return
+		case <-time.After(retryInterval):
+			// Continue to next retry
+		}
+	}
 }
 
 func (w *ConfigWatcher) readFile(path string) (string, error) {

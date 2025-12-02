@@ -302,3 +302,337 @@ func TestConfigWatcher_URLConstruction(t *testing.T) {
 	}
 }
 
+// TestConfigWatcher_RetryOnFailure verifies that sendConfig retries when the server fails.
+func TestConfigWatcher_RetryOnFailure(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, "config")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+
+	// Create config files
+	if err := os.WriteFile(filepath.Join(configDir, "app.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create app.toml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "config.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create config.toml: %v", err)
+	}
+
+	var mu sync.Mutex
+	attemptCount := 0
+
+	// Server fails first 2 times, succeeds on 3rd attempt
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		attemptCount++
+		currentAttempt := attemptCount
+		mu.Unlock()
+
+		if currentAttempt < 3 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	cfg := &Config{
+		NodeHome:   tmpDir,
+		ServiceURL: ts.URL,
+		ChainID:    "test-chain",
+		NodeID:     "test-node",
+	}
+
+	watcher := NewConfigWatcher(cfg)
+
+	// Send config with retry - should succeed after retries
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	watcher.sendConfigWithRetry(ctx)
+
+	mu.Lock()
+	finalCount := attemptCount
+	mu.Unlock()
+
+	// Should have retried at least 3 times
+	if finalCount < 3 {
+		t.Errorf("attemptCount = %d, want >= 3", finalCount)
+	}
+}
+
+// TestConfigWatcher_RetryStopsOnContextCancel verifies that retry stops when context is cancelled.
+func TestConfigWatcher_RetryStopsOnContextCancel(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, "config")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+
+	// Create config files
+	if err := os.WriteFile(filepath.Join(configDir, "app.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create app.toml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "config.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create config.toml: %v", err)
+	}
+
+	var mu sync.Mutex
+	attemptCount := 0
+
+	// Server always fails
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		attemptCount++
+		mu.Unlock()
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer ts.Close()
+
+	cfg := &Config{
+		NodeHome:   tmpDir,
+		ServiceURL: ts.URL,
+		ChainID:    "test-chain",
+		NodeID:     "test-node",
+	}
+
+	watcher := NewConfigWatcher(cfg)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Start send in background
+	done := make(chan struct{})
+	go func() {
+		watcher.sendConfigWithRetry(ctx)
+		close(done)
+	}()
+
+	// Wait for a few attempts
+	time.Sleep(2 * time.Second)
+
+	// Cancel context
+	cancel()
+
+	// Wait for sendConfigWithRetry to return
+	select {
+	case <-done:
+		// Good, it returned
+	case <-time.After(5 * time.Second):
+		t.Fatal("sendConfigWithRetry did not stop after context cancel")
+	}
+
+	mu.Lock()
+	finalCount := attemptCount
+	mu.Unlock()
+
+	// Should have attempted at least once but stopped after cancel
+	if finalCount < 1 {
+		t.Errorf("attemptCount = %d, want >= 1", finalCount)
+	}
+}
+
+// TestConfigWatcher_RetryPreservesSnapshot verifies that when config changes during retry,
+// the original snapshot is preserved and sent (not the latest state).
+// This is important for history: each change should be recorded separately.
+func TestConfigWatcher_RetryPreservesSnapshot(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, "config")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+
+	appTomlPath := filepath.Join(configDir, "app.toml")
+	configTomlPath := filepath.Join(configDir, "config.toml")
+
+	// Create initial config files
+	if err := os.WriteFile(appTomlPath, []byte(`version = 1`), 0644); err != nil {
+		t.Fatalf("Failed to create app.toml: %v", err)
+	}
+	if err := os.WriteFile(configTomlPath, []byte(`version = 1`), 0644); err != nil {
+		t.Fatalf("Failed to create config.toml: %v", err)
+	}
+
+	var mu sync.Mutex
+	attemptCount := 0
+	var lastReceivedAppConfig string
+
+	// Server fails first 3 times, succeeds on 4th attempt
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		attemptCount++
+		currentAttempt := attemptCount
+		mu.Unlock()
+
+		// Read the app config content
+		if err := r.ParseMultipartForm(10 << 20); err == nil {
+			if file, _, err := r.FormFile("app_config"); err == nil {
+				data, _ := io.ReadAll(file)
+				mu.Lock()
+				lastReceivedAppConfig = string(data)
+				mu.Unlock()
+				file.Close()
+			}
+		}
+
+		if currentAttempt < 4 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	cfg := &Config{
+		NodeHome:   tmpDir,
+		ServiceURL: ts.URL,
+		ChainID:    "test-chain",
+		NodeID:     "test-node",
+	}
+
+	watcher := NewConfigWatcher(cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Start send in background
+	done := make(chan struct{})
+	go func() {
+		watcher.sendConfigWithRetry(ctx)
+		close(done)
+	}()
+
+	// Wait for first failure attempt
+	time.Sleep(1 * time.Second)
+
+	// Modify app.toml during retry - this should NOT affect the current retry loop
+	if err := os.WriteFile(appTomlPath, []byte(`version = 2`), 0644); err != nil {
+		t.Fatalf("Failed to modify app.toml: %v", err)
+	}
+
+	// Wait for completion
+	select {
+	case <-done:
+		// Good
+	case <-time.After(25 * time.Second):
+		t.Fatal("sendConfigWithRetry did not complete")
+	}
+
+	mu.Lock()
+	finalContent := lastReceivedAppConfig
+	mu.Unlock()
+
+	// Should have received the ORIGINAL version (snapshot preserved)
+	// The modified version = 2 should be sent by a separate retry loop triggered by fsnotify
+	if !strings.Contains(finalContent, "version = 1") {
+		t.Errorf("lastReceivedAppConfig = %q, want to contain 'version = 1' (snapshot should be preserved)", finalContent)
+	}
+}
+
+// TestConfigWatcher_NoRetryOnSuccess verifies that successful send doesn't retry.
+func TestConfigWatcher_NoRetryOnSuccess(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, "config")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+
+	// Create config files
+	if err := os.WriteFile(filepath.Join(configDir, "app.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create app.toml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "config.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create config.toml: %v", err)
+	}
+
+	var mu sync.Mutex
+	attemptCount := 0
+
+	// Server always succeeds
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		attemptCount++
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	cfg := &Config{
+		NodeHome:   tmpDir,
+		ServiceURL: ts.URL,
+		ChainID:    "test-chain",
+		NodeID:     "test-node",
+	}
+
+	watcher := NewConfigWatcher(cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	watcher.sendConfigWithRetry(ctx)
+
+	mu.Lock()
+	finalCount := attemptCount
+	mu.Unlock()
+
+	// Should have attempted exactly once (no retry on success)
+	if finalCount != 1 {
+		t.Errorf("attemptCount = %d, want 1", finalCount)
+	}
+}
+
+// TestConfigWatcher_SendsCapturedAtTimestamp verifies that captured_at timestamp is included.
+func TestConfigWatcher_SendsCapturedAtTimestamp(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, "config")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+
+	// Create config files
+	if err := os.WriteFile(filepath.Join(configDir, "app.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create app.toml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "config.toml"), []byte(`test = true`), 0644); err != nil {
+		t.Fatalf("Failed to create config.toml: %v", err)
+	}
+
+	var capturedAt string
+	beforeSend := time.Now().UTC()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseMultipartForm(10 << 20); err == nil {
+			capturedAt = r.FormValue("captured_at")
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	cfg := &Config{
+		NodeHome:   tmpDir,
+		ServiceURL: ts.URL,
+		ChainID:    "test-chain",
+		NodeID:     "test-node",
+	}
+
+	watcher := NewConfigWatcher(cfg)
+	ctx := context.Background()
+	watcher.sendConfigWithRetry(ctx)
+
+	afterSend := time.Now().UTC()
+
+	// Verify captured_at is present and valid
+	if capturedAt == "" {
+		t.Fatal("captured_at field is missing")
+	}
+
+	parsedTime, err := time.Parse(time.RFC3339Nano, capturedAt)
+	if err != nil {
+		t.Fatalf("captured_at is not valid RFC3339Nano: %v", err)
+	}
+
+	// Verify timestamp is within expected range
+	if parsedTime.Before(beforeSend) || parsedTime.After(afterSend) {
+		t.Errorf("captured_at = %v, want between %v and %v", parsedTime, beforeSend, afterSend)
+	}
+}
+
