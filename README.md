@@ -1,5 +1,7 @@
 # walship
 
+![Latest Release](https://img.shields.io/github/v/release/bft-labs/cosmos-analyzer-shipper)
+
 A lightweight agent that streams Cosmos node WAL data to [apphash.io](https://apphash.io) for consensus monitoring and debugging.
 
 ## Prerequisites
@@ -19,14 +21,14 @@ interval = "2s"
 
 ```bash
 # Download
-curl -LO https://github.com/bft-labs/walship/releases/latest/download/walship_Linux_x86_64.tar.gz
+curl -LO https://github.com/bft-labs/cosmos-analyzer-shipper/releases/latest/download/walship_Linux_x86_64.tar.gz
 tar xzf walship_Linux_x86_64.tar.gz
 
 # Install
 sudo mv walship /usr/local/bin/
 ```
 
-Other platforms: see [Releases](https://github.com/bft-labs/walship/releases).
+Other platforms: see [Releases](https://github.com/bft-labs/cosmos-analyzer-shipper/releases).
 
 ## Quick Start
 
@@ -69,6 +71,7 @@ sudo systemctl enable --now walship
 sudo journalctl -u walship -f  # view logs
 ```
 
+
 ## Configuration
 
 All flags can be set via environment variables with `WALSHIP_` prefix.
@@ -100,17 +103,6 @@ service_url = "https://api.apphash.io"
 auth_key = "your-key"
 ```
 
-## Verify It's Working
-
-```bash
-# Check walship logs
-sudo journalctl -u walship -f
-
-# You should see:
-# config watcher: sent configuration update
-# Successfully sent batch of N frames (XXX bytes)
-```
-
 ## Troubleshooting
 
 **"no index files found"**
@@ -123,9 +115,11 @@ sudo journalctl -u walship -f
 
 ## Building from Source
 
+Requires Go 1.22+
+
 ```bash
-git clone https://github.com/bft-labs/walship
-cd walship && make build
+git clone https://github.com/bft-labs/cosmos-analyzer-shipper
+cd cosmos-analyzer-shipper && make build
 ./walship --help
 ```
 
