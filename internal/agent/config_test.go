@@ -96,34 +96,12 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "missing node-home but has chain-id and node-id",
+			name: "missing node-home is always error",
 			config: Config{
 				ChainID:      "test-chain",
 				NodeID:       "test-node",
 				WALDir:       "/tmp/wal",
-				ServiceURL:    "http://localhost:8080",
-				PollInterval: time.Second,
-				SendInterval: time.Second,
-			},
-			wantErr: false,
-		},
-		{
-			name: "missing node-home and chain-id",
-			config: Config{
-				NodeID:       "test-node",
-				WALDir:       "/tmp/wal",
-				ServiceURL:    "http://localhost:8080",
-				PollInterval: time.Second,
-				SendInterval: time.Second,
-			},
-			wantErr: true,
-		},
-		{
-			name: "missing node-home and node-id",
-			config: Config{
-				ChainID:      "test-chain",
-				WALDir:       "/tmp/wal",
-				ServiceURL:    "http://localhost:8080",
+				ServiceURL:   "http://localhost:8080",
 				PollInterval: time.Second,
 				SendInterval: time.Second,
 			},

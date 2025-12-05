@@ -74,12 +74,7 @@ func defaultStateDir() string {
 // Validate checks the configuration for errors and sets derived defaults.
 func (c *Config) Validate() error {
 	if c.NodeHome == "" {
-		if c.ChainID == "" {
-			return fmt.Errorf("node-home is required when chain-id is missing")
-		}
-		if c.NodeID == "" || c.NodeID == "default" {
-			return fmt.Errorf("node-home is required when node-id is missing or default")
-		}
+		return fmt.Errorf("node-home is required")
 	}
 
 	if c.WALDir == "" {
