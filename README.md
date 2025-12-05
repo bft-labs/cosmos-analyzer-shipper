@@ -22,22 +22,23 @@ Once enabled, WAL files will rotate under `<NODE_HOME>/data/log.wal/`.
 ## Installation
 
 ```bash
-# Download
-curl -LO https://github.com/bft-labs/cosmos-analyzer-shipper/releases/latest/download/walship_Linux_x86_64.tar.gz
+FILE=walship_Linux_x86_64.tar.gz  # pick the tarball for your OS/arch
+curl -LO https://github.com/bft-labs/cosmos-analyzer-shipper/releases/latest/download/$FILE
 curl -LO https://github.com/bft-labs/cosmos-analyzer-shipper/releases/latest/download/checksums.txt
 
 # Verify (Linux)
-grep walship_Linux_x86_64.tar.gz checksums.txt | sha256sum --check -
+grep "$FILE" checksums.txt | sha256sum --check -
 
 # Verify (macOS)
-grep walship_Linux_x86_64.tar.gz checksums.txt | shasum -a 256 --check -
+grep "$FILE" checksums.txt | shasum -a 256 --check -
 
 # Install
-tar xzf walship_Linux_x86_64.tar.gz
+tar xzf "$FILE"
 sudo mv walship /usr/local/bin/
 ```
 
 Other platforms: see [Releases](https://github.com/bft-labs/cosmos-analyzer-shipper/releases).
+Checksums (`checksums.txt`) are published with each release.
 
 ## Quick Start
 
