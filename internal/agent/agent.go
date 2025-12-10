@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -184,24 +185,59 @@ func trySend(cfg Config, httpClient *http.Client, batch *[]batchFrame, batchByte
 	}
 
 	// Build payload
-	var buf bytes.Buffer
 	manifest := make([]FrameMeta, 0, len(*batch))
 	var advance int64
 	for _, fr := range *batch {
-		buf.Write(fr.Compressed)
 		manifest = append(manifest, fr.Meta)
 		advance += int64(fr.IdxLineLen)
 	}
 	url := cfg.ServiceURL + walFramesEndpoint
-	req, err := http.NewRequest(http.MethodPost, url, &buf)
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	manifestJSON, err := json.Marshal(manifest)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error marshaling manifest: %v\n", err)
+		back.Sleep()
+		return
+	}
+	manifestPart, err := writer.CreateFormField("manifest")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating manifest field: %v\n", err)
+		back.Sleep()
+		return
+	}
+	if _, err := manifestPart.Write(manifestJSON); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing manifest field: %v\n", err)
+		back.Sleep()
+		return
+	}
+
+	framesPart, err := writer.CreateFormFile("frames", curIdxBase)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating frames field: %v\n", err)
+		back.Sleep()
+		return
+	}
+	for _, fr := range *batch {
+		if _, err := framesPart.Write(fr.Compressed); err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing frames payload: %v\n", err)
+			back.Sleep()
+			return
+		}
+	}
+	if err := writer.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error finalizing multipart payload: %v\n", err)
+		back.Sleep()
+		return
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, &body)
 	if err != nil {
 		return
 	}
 	req.Header.Set("Authorization", "Bearer "+cfg.AuthKey)
-	req.Header.Set("Content-Type", "application/vnd.cometbft.wal-frames+gzip")
-	if man, err := json.Marshal(manifest); err == nil {
-		req.Header.Set("X-WAL-Manifest", string(man))
-	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("X-Agent-Hostname", hostname())
 	req.Header.Set("X-Agent-OSArch", runtime.GOOS+"/"+runtime.GOARCH)
 	req.Header.Set("X-Cosmos-Analyzer-Chain-Id", cfg.ChainID)
