@@ -39,4 +39,4 @@ dockers:
 release:
   github:
     owner: bft-labs
-    name: cosmos-analyzer-shipper
+    name: walship

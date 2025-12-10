@@ -1,6 +1,6 @@
 # walship
 
-![Latest Release](https://img.shields.io/github/v/release/bft-labs/cosmos-analyzer-shipper)
+![Latest Release](https://img.shields.io/github/v/release/bft-labs/walship)
 
 A lightweight agent that streams Cosmos node WAL data to [apphash.io](https://apphash.io) for consensus monitoring and debugging.
 
@@ -23,8 +23,8 @@ Once enabled, WAL files will rotate under `<NODE_HOME>/data/log.wal/`.
 
 ```bash
 FILE=walship_Linux_x86_64.tar.gz  # pick the tarball for your OS/arch
-curl -LO https://github.com/bft-labs/cosmos-analyzer-shipper/releases/latest/download/$FILE
-curl -LO https://github.com/bft-labs/cosmos-analyzer-shipper/releases/latest/download/checksums.txt
+curl -LO https://github.com/bft-labs/walship/releases/latest/download/$FILE
+curl -LO https://github.com/bft-labs/walship/releases/latest/download/checksums.txt
 
 # Verify (Linux)
 grep "$FILE" checksums.txt | sha256sum --check -
@@ -37,7 +37,7 @@ tar xzf "$FILE"
 sudo mv walship /usr/local/bin/
 ```
 
-Other platforms: see [Releases](https://github.com/bft-labs/cosmos-analyzer-shipper/releases).
+Other platforms: see [Releases](https://github.com/bft-labs/walship/releases).
 Checksums (`checksums.txt`) are published with each release.
 
 ## Quick Start
@@ -118,8 +118,8 @@ auth_key = "your-key"
 Requires Go 1.22+
 
 ```bash
-git clone https://github.com/bft-labs/cosmos-analyzer-shipper
-cd cosmos-analyzer-shipper && make build
+git clone https://github.com/bft-labs/walship
+cd walship && make build
 ./walship --help
 ```
 

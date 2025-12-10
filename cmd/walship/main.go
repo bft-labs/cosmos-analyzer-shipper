@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	pflag "github.com/spf13/pflag"
 
-	agent "github.com/bft-labs/cosmos-analyzer-shipper/internal/agent"
+	agent "github.com/bft-labs/walship/internal/agent"
 )
 
 const helpBanner = `

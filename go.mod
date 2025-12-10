@@ -1,4 +1,4 @@
-module github.com/bft-labs/cosmos-analyzer-shipper
+module github.com/bft-labs/walship
 
 go 1.22
 
