@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -69,10 +68,8 @@ func DefaultConfig() Config {
 }
 
 func defaultStateDir() string {
-	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".walship")
-	}
-	return "."
+	// Derived from WALDir during Validate when left empty.
+	return ""
 }
 
 // Validate checks the configuration for errors and sets derived defaults.
@@ -88,6 +85,10 @@ func (c *Config) Validate() error {
 		} else {
 			return fmt.Errorf("wal-dir is required (or node-home)")
 		}
+	}
+
+	if c.StateDir == "" {
+		c.StateDir = c.WALDir
 	}
 
 	if c.ServiceURL == "" {

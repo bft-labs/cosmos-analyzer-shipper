@@ -133,7 +133,10 @@ func main() {
 	root.Flags().StringVar(&cfg.Iface, "iface", cfg.Iface, "network interface to monitor (optional)")
 	root.Flags().IntVar(&cfg.IfaceSpeedMbps, "iface-speed", cfg.IfaceSpeedMbps, "interface speed in Mbps (used for utilization)")
 
-	root.Flags().StringVar(&cfg.StateDir, "state-dir", cfg.StateDir, "state directory for agent-status.json")
+	root.Flags().StringVar(&cfg.StateDir, "state-dir", cfg.StateDir, "state directory for status.json (defaults to wal-dir)")
+	if err := root.Flags().MarkHidden("state-dir"); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: failed to hide state-dir flag: %v\n", err)
+	}
 	root.Flags().DurationVar(&cfg.HTTPTimeout, "timeout", cfg.HTTPTimeout, "HTTP timeout")
 	root.Flags().BoolVar(&cfg.Verify, "verify", cfg.Verify, "verify CRC/line counts while reading (debug)")
 	root.Flags().BoolVar(&cfg.Meta, "meta", cfg.Meta, "print frame metadata to stderr (debug)")

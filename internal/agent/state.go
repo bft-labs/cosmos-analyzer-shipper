@@ -17,7 +17,9 @@ type state struct {
 	LastSendAt   time.Time `json:"last_send_at"`
 }
 
-func stateFile(dir string) string { return filepath.Join(dir, "agent-status.json") }
+func stateFile(dir string) string {
+	return filepath.Join(dir, "status.json")
+}
 
 func loadState(dir string) (state, error) {
 	b, err := os.ReadFile(stateFile(dir))
@@ -35,7 +37,8 @@ func saveState(dir string, st state) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
-	tmp := stateFile(dir) + ".tmp"
+	path := stateFile(dir)
+	tmp := path + ".tmp"
 	b, err := json.MarshalIndent(st, "", "  ")
 	if err != nil {
 		return err

@@ -146,6 +146,9 @@ func TestConfig_Validate_Derivations(t *testing.T) {
 	if c1.WALDir != expectedWAL {
 		t.Errorf("WALDir = %v, want %v", c1.WALDir, expectedWAL)
 	}
+	if c1.StateDir != expectedWAL {
+		t.Errorf("StateDir = %v, want %v", c1.StateDir, expectedWAL)
+	}
 
 	// Test RemoteURL derivation
 	c2 := Config{
@@ -162,5 +165,22 @@ func TestConfig_Validate_Derivations(t *testing.T) {
 	expectedURL := "http://api.com/v1/ingest"
 	if c2.ServiceURL != expectedURL {
 		t.Errorf("ServiceURL = %v, want %v", c2.ServiceURL, expectedURL)
+	}
+
+	// StateDir respects explicit override
+	c3 := Config{
+		NodeHome:     "/tmp/root",
+		NodeID:       "validator-2",
+		WALDir:       "/custom/wal",
+		StateDir:     "/state",
+		ServiceURL:   "http://api.com/v1/ingest",
+		PollInterval: time.Second,
+		SendInterval: time.Second,
+	}
+	if err := c3.Validate(); err != nil {
+		t.Fatalf("Validate failed: %v", err)
+	}
+	if c3.StateDir != "/state" {
+		t.Errorf("StateDir = %v, want /state", c3.StateDir)
 	}
 }
