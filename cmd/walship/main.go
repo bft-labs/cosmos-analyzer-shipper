@@ -4,14 +4,18 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	pflag "github.com/spf13/pflag"
 
 	agent "github.com/bft-labs/walship/internal/agent"
+	logAdapter "github.com/bft-labs/walship/internal/adapters/log"
+	"github.com/bft-labs/walship/pkg/walship"
 )
 
 const helpBanner = `
@@ -107,8 +111,71 @@ func main() {
 			}
 			log.Info().Interface("config", logCfg).Msg("configuration")
 
-			if err := agent.Run(context.Background(), cfg); err != nil {
-				return err
+			// Convert agent.Config to walship.Config
+			libCfg := walship.Config{
+				WALDir:        cfg.WALDir,
+				StateDir:      cfg.StateDir,
+				ServiceURL:    cfg.ServiceURL,
+				AuthKey:       cfg.AuthKey,
+				ChainID:       cfg.ChainID,
+				NodeID:        cfg.NodeID,
+				PollInterval:  cfg.PollInterval,
+				SendInterval:  cfg.SendInterval,
+				HardInterval:  cfg.HardInterval,
+				MaxBatchBytes: cfg.MaxBatchBytes,
+				HTTPTimeout:   cfg.HTTPTimeout,
+				Once:          cfg.Once,
+			}
+
+			// Create zerolog adapter for the library
+			zerologAdapter := logAdapter.NewZerologAdapterWithLogger(log)
+
+			// Create walship instance
+			w, err := walship.New(libCfg, walship.WithLogger(zerologAdapter))
+			if err != nil {
+				return fmt.Errorf("create walship: %w", err)
+			}
+
+			// Setup signal handling for graceful shutdown
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			sigCh := make(chan os.Signal, 1)
+			signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+			// Start walship
+			if err := w.Start(ctx); err != nil {
+				return fmt.Errorf("start walship: %w", err)
+			}
+
+			// Wait for signal or completion (in once mode)
+			if cfg.Once {
+				// In once mode, wait for completion by polling status
+				for w.Status() == walship.StateRunning || w.Status() == walship.StateStarting {
+					select {
+					case <-sigCh:
+						log.Info().Msg("received signal, stopping...")
+						if err := w.Stop(); err != nil {
+							return fmt.Errorf("stop walship: %w", err)
+						}
+						return nil
+					default:
+						// Check status periodically
+						// Small sleep to avoid busy waiting
+						select {
+						case <-ctx.Done():
+							return nil
+						default:
+						}
+					}
+				}
+			} else {
+				// In continuous mode, wait for signal
+				<-sigCh
+				log.Info().Msg("received signal, stopping...")
+				if err := w.Stop(); err != nil {
+					return fmt.Errorf("stop walship: %w", err)
+				}
 			}
 			return nil
 		},
