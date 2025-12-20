@@ -21,7 +21,7 @@ import (
 	"github.com/bft-labs/walship/pkg/walship"
 )
 
-const configEndpoint = "/v1/node/config"
+const configEndpoint = "/v1/ingest/config"
 
 // Error codes for config file issues.
 const (
