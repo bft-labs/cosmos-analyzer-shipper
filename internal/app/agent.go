@@ -11,6 +11,8 @@ import (
 
 	"github.com/bft-labs/walship/internal/domain"
 	"github.com/bft-labs/walship/internal/ports"
+	"github.com/bft-labs/walship/pkg/sender"
+	"github.com/bft-labs/walship/pkg/wal"
 )
 
 // AgentConfig contains configuration for the agent loop.
@@ -55,7 +57,7 @@ type SendEventEmitter interface {
 func NewAgent(
 	config AgentConfig,
 	reader ports.FrameReader,
-	sender ports.FrameSender,
+	snd ports.FrameSender,
 	stateRepo ports.StateRepository,
 	logger ports.Logger,
 	emitter SendEventEmitter,
@@ -63,7 +65,7 @@ func NewAgent(
 	return &Agent{
 		config:    config,
 		reader:    reader,
-		sender:    sender,
+		sender:    snd,
 		stateRepo: stateRepo,
 		logger:    logger,
 		batcher:   NewBatcher(config.MaxBatchBytes, config.SendInterval, config.HardInterval),
@@ -162,6 +164,27 @@ func (a *Agent) Run(ctx context.Context) error {
 	}
 }
 
+// batchToFrameData converts internal batch to []sender.FrameData.
+func batchToFrameData(batch *domain.Batch) []sender.FrameData {
+	frames := make([]sender.FrameData, len(batch.Frames))
+	for i, f := range batch.Frames {
+		frames[i] = sender.FrameData{
+			Frame: wal.Frame{
+				File:           f.File,
+				FrameNumber:    f.FrameNumber,
+				Offset:         f.Offset,
+				Length:         f.Length,
+				RecordCount:    f.RecordCount,
+				FirstTimestamp: f.FirstTimestamp,
+				LastTimestamp:  f.LastTimestamp,
+				CRC32:          f.CRC32,
+			},
+			CompressedData: batch.CompressedData[i],
+		}
+	}
+	return frames
+}
+
 // trySend attempts to send the current batch.
 func (a *Agent) trySend(ctx context.Context, state *domain.State, backoff *backoff) {
 	batch := a.batcher.Batch()
@@ -169,7 +192,7 @@ func (a *Agent) trySend(ctx context.Context, state *domain.State, backoff *backo
 		return
 	}
 
-	metadata := ports.SendMetadata{
+	metadata := sender.Metadata{
 		ChainID:    a.config.ChainID,
 		NodeID:     a.config.NodeID,
 		Hostname:   a.config.Hostname,
@@ -178,8 +201,11 @@ func (a *Agent) trySend(ctx context.Context, state *domain.State, backoff *backo
 		ServiceURL: a.config.ServiceURL,
 	}
 
+	// Convert batch to []FrameData
+	frames := batchToFrameData(batch)
+
 	start := time.Now()
-	err := a.sender.Send(ctx, batch, metadata)
+	err := a.sender.Send(ctx, frames, metadata)
 	duration := time.Since(start)
 
 	if err != nil {
@@ -237,7 +263,7 @@ func (a *Agent) Flush(ctx context.Context, state *domain.State) error {
 	}
 
 	batch := a.batcher.Batch()
-	metadata := ports.SendMetadata{
+	metadata := sender.Metadata{
 		ChainID:    a.config.ChainID,
 		NodeID:     a.config.NodeID,
 		Hostname:   a.config.Hostname,
@@ -246,7 +272,10 @@ func (a *Agent) Flush(ctx context.Context, state *domain.State) error {
 		ServiceURL: a.config.ServiceURL,
 	}
 
-	if err := a.sender.Send(ctx, batch, metadata); err != nil {
+	// Convert batch to []FrameData
+	frames := batchToFrameData(batch)
+
+	if err := a.sender.Send(ctx, frames, metadata); err != nil {
 		return err
 	}
 

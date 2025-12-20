@@ -7,11 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bft-labs/walship/pkg/batch"
 	"github.com/bft-labs/walship/pkg/sender"
 )
 
-// FileSender demonstrates a custom sender implementation that writes batches to files.
+// FileSender demonstrates a custom sender implementation that writes frames to files.
 // This shows that the Sender interface is implementation-agnostic.
 type FileSender struct {
 	outputDir string
@@ -23,8 +22,8 @@ func NewFileSender(outputDir string) *FileSender {
 	return &FileSender{outputDir: outputDir}
 }
 
-// Send implements the sender.Sender interface by writing batches to JSON files.
-func (f *FileSender) Send(ctx context.Context, b *batch.Batch, metadata sender.Metadata) error {
+// Send implements the sender.Sender interface by writing frames to JSON files.
+func (f *FileSender) Send(ctx context.Context, frames []sender.FrameData, metadata sender.Metadata) error {
 	// Create output directory if needed
 	if err := os.MkdirAll(f.outputDir, 0755); err != nil {
 		return err
@@ -34,10 +33,15 @@ func (f *FileSender) Send(ctx context.Context, b *batch.Batch, metadata sender.M
 	output := map[string]interface{}{
 		"chain_id":    metadata.ChainID,
 		"node_id":     metadata.NodeID,
-		"frame_count": b.Size(),
-		"byte_count":  b.TotalBytes,
-		"frames":      b.Frames,
+		"frame_count": len(frames),
 	}
+
+	// Calculate total bytes
+	totalBytes := 0
+	for _, fd := range frames {
+		totalBytes += len(fd.CompressedData)
+	}
+	output["byte_count"] = totalBytes
 
 	// Marshal to JSON
 	data, err := json.MarshalIndent(output, "", "  ")
@@ -61,9 +65,8 @@ func ExampleFileSender() {
 	// Create a custom sender that writes to files instead of HTTP
 	fileSender := NewFileSender("/tmp/walship-batches")
 
-	// Create a batch using the proper constructor
-	b := batch.NewBatch()
-	// In real usage, you would add frames via b.Add(frame, compressed, idxLen)
+	// Create empty frames slice
+	var frames []sender.FrameData
 
 	// Send using the custom implementation
 	metadata := sender.Metadata{
@@ -71,6 +74,6 @@ func ExampleFileSender() {
 		NodeID:  "node-1",
 	}
 
-	_ = fileSender.Send(context.Background(), b, metadata)
+	_ = fileSender.Send(context.Background(), frames, metadata)
 	// Output files would be written to /tmp/walship-batches/batch_1.json
 }

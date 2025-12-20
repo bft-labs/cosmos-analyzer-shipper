@@ -1,39 +1,18 @@
 package ports
 
 import (
-	"context"
-
-	"github.com/bft-labs/walship/internal/domain"
+	"github.com/bft-labs/walship/pkg/sender"
 )
 
-// FrameSender transmits frame batches to the ingestion service.
+// FrameSender transmits frame data to the ingestion service.
 // Implementations handle serialization, HTTP communication, and authentication.
-type FrameSender interface {
-	// Send transmits a batch of frames to the remote service.
-	// Returns nil on success, error on failure.
-	// The implementation should handle retries with backoff internally
-	// or return an error for the caller to handle.
-	Send(ctx context.Context, batch *domain.Batch, metadata SendMetadata) error
-}
+// This is an alias to the public sender.Sender interface.
+type FrameSender = sender.Sender
 
 // SendMetadata provides context for the send operation.
-// This information is included in HTTP headers for server-side tracking.
-type SendMetadata struct {
-	// ChainID is the blockchain chain identifier
-	ChainID string
+// This is an alias to the public sender.Metadata type.
+type SendMetadata = sender.Metadata
 
-	// NodeID is the node identifier
-	NodeID string
-
-	// Hostname is the agent's hostname
-	Hostname string
-
-	// OSArch is the operating system and architecture (e.g., "linux/amd64")
-	OSArch string
-
-	// AuthKey is the API authentication key
-	AuthKey string
-
-	// ServiceURL is the base URL of the ingestion service
-	ServiceURL string
-}
+// FrameData represents a frame with its compressed data for sending.
+// This is an alias to the public sender.FrameData type.
+type FrameData = sender.FrameData

@@ -13,6 +13,7 @@ import (
 
 	"github.com/bft-labs/walship/internal/domain"
 	"github.com/bft-labs/walship/internal/ports"
+	"github.com/bft-labs/walship/pkg/sender"
 )
 
 const walFramesEndpoint = "/v1/ingest/wal-frames"
@@ -31,16 +32,25 @@ func NewFrameSender(client ports.HTTPClient, logger ports.Logger) *FrameSender {
 	}
 }
 
-// Send transmits a batch of frames to the remote service.
-func (s *FrameSender) Send(ctx context.Context, batch *domain.Batch, metadata ports.SendMetadata) error {
-	if batch.Empty() {
+// Send transmits frames to the remote service.
+func (s *FrameSender) Send(ctx context.Context, frames []sender.FrameData, metadata sender.Metadata) error {
+	if len(frames) == 0 {
 		return nil
 	}
 
 	// Build manifest
-	manifest := make([]domain.FrameMeta, len(batch.Frames))
-	for i, f := range batch.Frames {
-		manifest[i] = f.ToMeta()
+	manifest := make([]domain.FrameMeta, len(frames))
+	for i, fd := range frames {
+		manifest[i] = domain.FrameMeta{
+			File:    fd.Frame.File,
+			Frame:   fd.Frame.FrameNumber,
+			Off:     fd.Frame.Offset,
+			Len:     fd.Frame.Length,
+			Recs:    fd.Frame.RecordCount,
+			FirstTS: fd.Frame.FirstTimestamp,
+			LastTS:  fd.Frame.LastTimestamp,
+			CRC32:   fd.Frame.CRC32,
+		}
 	}
 
 	// Build multipart request body
@@ -64,8 +74,8 @@ func (s *FrameSender) Send(ctx context.Context, batch *domain.Batch, metadata po
 	// Add frames data
 	// Use the first frame's file as the filename hint
 	filename := "frames.bin"
-	if len(batch.Frames) > 0 {
-		filename = filepath.Base(batch.Frames[0].File)
+	if len(frames) > 0 {
+		filename = filepath.Base(frames[0].Frame.File)
 	}
 
 	framesPart, err := writer.CreateFormFile("frames", filename)
@@ -73,8 +83,8 @@ func (s *FrameSender) Send(ctx context.Context, batch *domain.Batch, metadata po
 		return fmt.Errorf("create frames field: %w", err)
 	}
 
-	for _, data := range batch.CompressedData {
-		if _, err := framesPart.Write(data); err != nil {
+	for _, fd := range frames {
+		if _, err := framesPart.Write(fd.CompressedData); err != nil {
 			return fmt.Errorf("write frames data: %w", err)
 		}
 	}

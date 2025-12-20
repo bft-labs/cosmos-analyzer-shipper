@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/bft-labs/walship/pkg/batch"
 	"github.com/bft-labs/walship/pkg/log"
 	"github.com/bft-labs/walship/pkg/wal"
 )
@@ -32,16 +31,16 @@ func NewHTTPSender(client HTTPClient, logger log.Logger) *HTTPSender {
 	}
 }
 
-// Send transmits a batch of frames to the remote service.
-func (s *HTTPSender) Send(ctx context.Context, b *batch.Batch, metadata Metadata) error {
-	if b.Empty() {
+// Send transmits frames to the remote service.
+func (s *HTTPSender) Send(ctx context.Context, frames []FrameData, metadata Metadata) error {
+	if len(frames) == 0 {
 		return nil
 	}
 
 	// Build manifest
-	manifest := make([]wal.FrameMeta, len(b.Frames))
-	for i, f := range b.Frames {
-		manifest[i] = f.ToMeta()
+	manifest := make([]wal.FrameMeta, len(frames))
+	for i, fd := range frames {
+		manifest[i] = fd.Frame.ToMeta()
 	}
 
 	// Build multipart request body
@@ -65,8 +64,8 @@ func (s *HTTPSender) Send(ctx context.Context, b *batch.Batch, metadata Metadata
 	// Add frames data
 	// Use the first frame's file as the filename hint
 	filename := "frames.bin"
-	if len(b.Frames) > 0 {
-		filename = filepath.Base(b.Frames[0].File)
+	if len(frames) > 0 {
+		filename = filepath.Base(frames[0].Frame.File)
 	}
 
 	framesPart, err := writer.CreateFormFile("frames", filename)
@@ -74,8 +73,8 @@ func (s *HTTPSender) Send(ctx context.Context, b *batch.Batch, metadata Metadata
 		return fmt.Errorf("create frames field: %w", err)
 	}
 
-	for _, data := range b.CompressedData {
-		if _, err := framesPart.Write(data); err != nil {
+	for _, fd := range frames {
+		if _, err := framesPart.Write(fd.CompressedData); err != nil {
 			return fmt.Errorf("write frames data: %w", err)
 		}
 	}
