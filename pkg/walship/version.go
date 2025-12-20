@@ -1,8 +1,6 @@
 package walship
 
 import (
-	"github.com/bft-labs/walship/pkg/batch"
-	"github.com/bft-labs/walship/pkg/lifecycle"
 	"github.com/bft-labs/walship/pkg/log"
 	"github.com/bft-labs/walship/pkg/sender"
 	"github.com/bft-labs/walship/pkg/state"
@@ -21,23 +19,19 @@ const (
 // ModuleVersions returns the versions of all sub-modules.
 func ModuleVersions() map[string]string {
 	return map[string]string{
-		"walship":   Version,
-		"wal":       wal.Version,
-		"batch":     batch.Version,
-		"sender":    sender.Version,
-		"state":     state.Version,
-		"log":       log.Version,
-		"lifecycle": lifecycle.Version,
+		"walship": Version,
+		"wal":     wal.Version,
+		"sender":  sender.Version,
+		"state":   state.Version,
+		"log":     log.Version,
 	}
 }
 
 // CompatibilityMatrix defines the minimum compatible versions for each module.
 // These versions are validated during New() to ensure all modules work together.
 var CompatibilityMatrix = map[string]string{
-	"wal":       wal.MinCompatibleVersion,
-	"batch":     batch.MinCompatibleVersion,
-	"sender":    sender.MinCompatibleVersion,
-	"state":     state.MinCompatibleVersion,
-	"log":       log.MinCompatibleVersion,
-	"lifecycle": lifecycle.MinCompatibleVersion,
+	"wal":    wal.MinCompatibleVersion,
+	"sender": sender.MinCompatibleVersion,
+	"state":  state.MinCompatibleVersion,
+	"log":    log.MinCompatibleVersion,
 }
