@@ -149,13 +149,13 @@ func (p *Plugin) watchLoop(ctx context.Context) {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		p.logger.Error("Config watcher: failed to create watcher")
+		p.logger.Error("Config watcher: failed to create watcher: " + err.Error())
 		return
 	}
 	defer watcher.Close()
 
 	if err := watcher.Add(configDir); err != nil {
-		p.logger.Error("Config watcher: failed to watch directory")
+		p.logger.Error("Config watcher: failed to watch directory: " + err.Error())
 		// Still try to send initial config
 		p.sendConfigWithRetry(ctx)
 		return
