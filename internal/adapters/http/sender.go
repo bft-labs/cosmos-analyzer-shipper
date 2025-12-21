@@ -72,11 +72,8 @@ func (s *FrameSender) Send(ctx context.Context, frames []sender.FrameData, metad
 	}
 
 	// Add frames data
-	// Use the first frame's file as the filename hint
-	filename := "frames.bin"
-	if len(frames) > 0 {
-		filename = filepath.Base(frames[0].Frame.File)
-	}
+	// Use the first frame's file as the filename hint (frames is guaranteed non-empty here)
+	filename := filepath.Base(frames[0].Frame.File)
 
 	framesPart, err := writer.CreateFormFile("frames", filename)
 	if err != nil {
