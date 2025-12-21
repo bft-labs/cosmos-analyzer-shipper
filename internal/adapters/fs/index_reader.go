@@ -15,6 +15,9 @@ import (
 	"github.com/bft-labs/walship/internal/ports"
 )
 
+// indexReaderBufSize is the buffer size for reading index files (64KB).
+const indexReaderBufSize = 64 * 1024
+
 // IndexReader implements ports.FrameReader by reading WAL index files.
 type IndexReader struct {
 	walDir   string
@@ -194,7 +197,7 @@ func openIdx(idxPath string) (*os.File, *bufio.Reader, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return f, bufio.NewReaderSize(f, 64*1024), nil
+	return f, bufio.NewReaderSize(f, indexReaderBufSize), nil
 }
 
 // preadSection reads [off, off+len) bytes from file.
