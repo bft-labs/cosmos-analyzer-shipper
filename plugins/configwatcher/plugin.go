@@ -200,7 +200,13 @@ func (p *Plugin) debounceSend(ctx context.Context, delay time.Duration) {
 	}
 
 	p.debounce = time.AfterFunc(delay, func() {
-		p.sendConfigWithRetry(ctx)
+		// Check if context was canceled before the timer fired
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			p.sendConfigWithRetry(ctx)
+		}
 	})
 }
 
